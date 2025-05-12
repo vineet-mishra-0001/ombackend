@@ -38,7 +38,8 @@ const allowedOrigins = [
 ];
 
 app.use(cors({
-  origin: '*',
+
+  origin: 'https://ombannatours.com', // ✅ specific frontend domain
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH']
 }));

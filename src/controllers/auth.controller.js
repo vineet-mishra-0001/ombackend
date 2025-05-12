@@ -65,10 +65,11 @@ export const loginUser = async (req, res) => {
     // Send token in both cookie and response body
     res.cookie('auth_token', token, {
       httpOnly: true,
-      secure: true,
-      sameSite: 'None',
+      secure: true, // Only use secure in production
+      sameSite: 'strict', // Use strict in production
       path: '/',
       maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+      domain: 'ombannatours.com', // Restrict to your domain
     });
 
     const { password: _, ...rest } = user._doc;
