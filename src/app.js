@@ -2,7 +2,11 @@ import express from 'express';
 import cors from 'cors';
 import path from 'path';
 import dotenv from 'dotenv';
-import connectDB from './config/db.js';
+import { fileURLToPath } from 'url';
+import cookieParser from 'cookie-parser';
+import fs from 'fs';
+
+// Import all routes
 import authRoutes from './routes/user.routes.js';
 import carRoutes from './routes/car.routes.js';
 import reviewRoutes from './routes/review.routes.js';
@@ -13,90 +17,68 @@ import carbookingRoutes from './routes/carBooking.routes.js';
 import feedbackRoutes from './routes/feedback.routes.js';
 import contactRoutes from './routes/contact.routes.js';
 import settingsRoutes from './routes/settings.routes.js';
-import { fileURLToPath } from 'url';
-import cookieParser from 'cookie-parser';
-import fs from 'fs';
-import mongoose from 'mongoose';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
 
 dotenv.config();
 
 const app = express();
 
-// Database connection middleware
-const dbMiddleware = async (req, res, next) => {
-  try {
-    if (!mongoose.connection.readyState) {
-      await connectDB();
-    }
-    next();
-  } catch (error) {
-    console.error('Database connection error:', error);
-    res.status(500).json({ message: 'Database connection error' });
-  }
-};
+// Resolve directory paths
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
+// Middleware
 app.use(cookieParser());
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
 // CORS configuration
-app.use(
-  cors({
-    origin: ['http://localhost:5173', 'http://localhost:3000', 'http://localhost:5174', 'http://localhost:5175'],
-    credentials: true,
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin'],
-    exposedHeaders: ['Set-Cookie']
-  })
-);
+const allowedOrigins = [
+  'https://admin.ombannatours.com',
+  'https://ombannatours.com',
+];
 
-// Serve static files from the /tmp directory in production
-if (process.env.NODE_ENV === 'production') {
-  app.use('/uploads', express.static('/tmp/uploads'));
-} else {
-  app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
+app.use(cors({
+  origin: '*',
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH']
+}));
+
+// Static file serving
+const uploadsPath = process.env.NODE_ENV === 'production' 
+  ? '/tmp/uploads' 
+  : path.join(__dirname, '../uploads');
+
+// Ensure uploads directory exists
+if (!fs.existsSync(uploadsPath)) {
+  fs.mkdirSync(uploadsPath, { recursive: true });
 }
 
-// Create uploads directory if it doesn't exist
-if (process.env.NODE_ENV === 'production') {
-  const uploadsDir = '/tmp/uploads';
-  if (!fs.existsSync(uploadsDir)) {
-    fs.mkdirSync(uploadsDir, { recursive: true });
-  }
-} else {
-  const uploadsDir = path.join(__dirname, '../uploads');
-  if (!fs.existsSync(uploadsDir)) {
-    fs.mkdirSync(uploadsDir, { recursive: true });
-  }
-}
+app.use('/uploads', express.static(uploadsPath));
 
-// Basic health check route (no DB connection needed)
+// Basic health check
 app.get('/', (req, res) => {
   res.send('API is running...');
 });
 
-// Apply database middleware to all routes that need database access
-app.use('/api/v1/auth', dbMiddleware, authRoutes);
-app.use('/api/v1/cars', dbMiddleware, carRoutes);
-app.use('/api/v1/tours', dbMiddleware, tourRoutes);
-app.use('/api/v1/reviews', dbMiddleware, reviewRoutes);
-app.use('/api/v1/bookings', dbMiddleware, bookingRoutes);
-app.use('/api/v1/carBookings', dbMiddleware, carbookingRoutes);
-app.use('/api/v1/feedback', dbMiddleware, feedbackRoutes);
-app.use('/api/v1/blogs', dbMiddleware, blogRoutes);
-app.use('/api/v1/contact', dbMiddleware, contactRoutes);
-app.use('/api/v1/settings', dbMiddleware, settingsRoutes);
+// API Routes
+app.use('/api/v1/auth', authRoutes);
+app.use('/api/v1/cars', carRoutes);
+app.use('/api/v1/reviews', reviewRoutes);
+app.use('/api/v1/tours', tourRoutes);
+app.use('/api/v1/bookings', bookingRoutes);
+app.use('/api/v1/carBookings', carbookingRoutes);
+app.use('/api/v1/feedback', feedbackRoutes);
+app.use('/api/v1/blogs', blogRoutes);
+app.use('/api/v1/contact', contactRoutes);
+app.use('/api/v1/settings', settingsRoutes);
 
-// Error handling middleware
+// Global error handler
 app.use((err, req, res, next) => {
   console.error('Error:', err);
-  res.status(500).json({ 
+  res.status(500).json({
     status: 'error',
-    message: process.env.NODE_ENV === 'production' 
-      ? 'Internal server error' 
+    message: process.env.NODE_ENV === 'production'
+      ? 'Internal server error'
       : err.message
   });
 });

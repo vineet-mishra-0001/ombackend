@@ -59,16 +59,16 @@ export const loginUser = async (req, res) => {
       return res.status(400).json({ message: 'Invalid credentials' });
 
     const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, {
-      expiresIn: '7d'
+      expiresIn: '7d',
     });
 
     // Send token in both cookie and response body
     res.cookie('auth_token', token, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+      secure: true,
+      sameSite: 'None',
       path: '/',
-      maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
+      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
     });
 
     const { password: _, ...rest } = user._doc;
@@ -77,13 +77,13 @@ export const loginUser = async (req, res) => {
       status: 'success',
       message: 'Login successful',
       user: rest,
-      token: token  // Also send token in response body
+      token: token, // Also send token in response body
     });
   } catch (err) {
     console.error('Login error:', err);
     res.status(500).json({
       status: 'error',
-      message: err.message
+      message: err.message,
     });
   }
 };
@@ -144,7 +144,7 @@ export const registerAdmin = async (req, res) => {
     if (userExists) {
       return res.status(400).json({
         status: 'error',
-        message: 'User already exists'
+        message: 'User already exists',
       });
     }
 
@@ -169,7 +169,7 @@ export const registerAdmin = async (req, res) => {
       phone,
       avatar: avatarPath,
       role: 'admin',
-      isVerified: true
+      isVerified: true,
     });
 
     const savedAdmin = await newAdmin.save();
@@ -184,20 +184,20 @@ export const registerAdmin = async (req, res) => {
       secure: process.env.NODE_ENV === 'production',
       sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
       path: '/',
-      maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
+      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
     });
 
     res.status(201).json({
       status: 'success',
       message: 'Admin registration successful',
       user: rest,
-      token: token
+      token: token,
     });
   } catch (err) {
     console.error('Admin registration error:', err);
     res.status(500).json({
       status: 'error',
-      message: err.message
+      message: err.message,
     });
   }
 };
