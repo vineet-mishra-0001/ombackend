@@ -69,7 +69,7 @@ export const loginUser = async (req, res) => {
       sameSite: 'strict', // Use strict in production
       path: '/',
       maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
-      domain: 'ombannatours.com', // Restrict to your domain
+     
     });
 
     const { password: _, ...rest } = user._doc;

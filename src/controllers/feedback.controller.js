@@ -42,6 +42,7 @@ export const getAllFeedbacks = async (req, res) => {
       .sort({ createdAt: -1 });
 
     const formatted = feedbacks.map((f) => ({
+      _id: f._id,
       comment: f.comment,
       rating: f.rating,
       createdAt: f.createdAt,
@@ -64,5 +65,20 @@ export const getAllFeedbacks = async (req, res) => {
       message: 'Failed to fetch feedbacks',
       error: error.message,
     });
+  }
+};
+
+export const deleteFeedback = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const deleted = await Feedback.findByIdAndDelete(id);
+    if (!deleted) {
+      return res
+        .status(404)
+        .json({ success: false, message: 'Feedback not found' });
+    }
+    res.json({ success: true, message: 'Feedback deleted' });
+  } catch (error) {
+    res.status(400).json({ success: false, message: error.message });
   }
 };

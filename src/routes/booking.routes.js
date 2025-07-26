@@ -9,7 +9,8 @@ router.get('/trend', BookingController.getBookingAnalytics);
 router.get('/', BookingController.getAllBooking);
 router.get('/:id', BookingController.getBooking);
 router.get('/user/:userId', BookingController.getBookingsByUser);
-router.delete('/:id', verifyToken, isAdmin, BookingController.cancelBooking);
+router.delete('/:id', verifyToken, isAdmin, BookingController.deleteBooking);
+router.patch('/:id/cancel', verifyToken, BookingController.cancelBooking);
 router.patch('/:id', verifyToken, isAdmin, BookingController.updateBooking); // Admin only
 
 export default router;

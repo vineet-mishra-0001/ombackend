@@ -3,6 +3,8 @@ import createHttpError from 'http-errors';
 import userModel from '../models/user.model.js';
 import Tour from '../models/tour.model.js';
 import carBookingModel from '../models/carBooking.model.js';
+import { Resend } from 'resend';
+import { generateBookingEmail } from '../utils/bookingEmailTemplate.js';
 
 export class BookingController {
   // Create a new booking
@@ -37,6 +39,43 @@ export class BookingController {
         bookingStatus: 'confirmed',
         paymentStatus: 'unpaid',
       });
+
+      // Send booking confirmation email using Resend
+      try {
+        const resend = new Resend('re_ADGFyo15_BXcEyMhKHexLToRUPJTpEXKa');
+        const html = generateBookingEmail({
+          bookingId: booking._id,
+          bookingDate: new Date(booking.createdAt).toLocaleDateString(),
+          status: booking.bookingStatus || 'CONFIRMED',
+          paymentStatus: booking.paymentStatus || 'RECEIVED',
+          customerName: userExists.name,
+          customerPhone: userExists.phone,
+          customerEmail: userExists.email,
+          fromCity: tourExists.startLocation || 'N/A',
+          toCity: tourExists.endLocation || 'N/A',
+          departureDate: new Date(booking.startDate).toLocaleDateString(),
+          returnDate: new Date(
+            booking.endDate || booking.startDate
+          ).toLocaleDateString(),
+          duration: 'N/A',
+          packageType: tourExists.category || 'N/A',
+          adults: booking.guests,
+          children: 0,
+          packageCost: tourExists.price || 0,
+          transportation: 0,
+          serviceTax: 0,
+          discount: 0,
+          totalPaid: tourExists.price || 0,
+        });
+        await resend.emails.send({
+          from: 'Om Banna Tours <noreply@ombannatours.com>',
+          to: userExists.email,
+          subject: 'Your Booking Confirmation - Om Banna Tours',
+          html,
+        });
+      } catch (mailErr) {
+        console.error('Failed to send booking confirmation email:', mailErr);
+      }
 
       return res.status(201).json({
         success: true,
@@ -95,6 +134,16 @@ export class BookingController {
     booking.bookingStatus = 'cancelled';
     await booking.save();
 
+    // Emit socket event
+    const io = req.app.get('io');
+    io.emit('bookingStatusChanged', {
+      type: 'tour',
+      bookingId: booking._id,
+      status: 'cancelled',
+      tourId: booking.tour,
+      userId: booking.user,
+    });
+
     return res.status(200).json({
       success: true,
       message: 'Booking cancelled successfully',
@@ -118,6 +167,16 @@ export class BookingController {
     if (paymentStatus) booking.paymentStatus = paymentStatus;
 
     await booking.save();
+
+    // Emit socket event for real-time update
+    const io = req.app.get('io');
+    io.emit('bookingStatusChanged', {
+      type: 'tour',
+      bookingId: id,
+      status: bookingStatus,
+      tourId: booking.tour?._id || booking.tour,
+      userId: booking.user?._id || booking.user,
+    });
 
     return res.status(200).json({
       success: true,
@@ -276,6 +335,36 @@ export class BookingController {
         message: 'Failed to fetch booking analytics',
         error: error.message,
       });
+    }
+  }
+
+  // Delete a booking (admin)
+  static async deleteBooking(req, res) {
+    try {
+      const { id } = req.params;
+      const deleted = await Booking.findByIdAndDelete(id);
+      if (!deleted) {
+        return res
+          .status(404)
+          .json({ success: false, message: 'Booking not found' });
+      }
+      // Emit socket event
+      const io = req.app.get('io');
+      io.emit('bookingStatusChanged', {
+        type: 'tour',
+        bookingId: id,
+        status: 'deleted',
+        tourId: deleted.tour,
+        userId: deleted.user,
+      });
+      return res
+        .status(200)
+        .json({ success: true, message: 'Booking deleted successfully.' });
+    } catch (error) {
+      console.error('Delete Booking Error:', error);
+      return res
+        .status(500)
+        .json({ success: false, message: 'Internal Server Error' });
     }
   }
 }

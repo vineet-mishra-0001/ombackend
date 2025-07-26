@@ -104,7 +104,6 @@ export class CarBookingController {
         .populate('car user', '-password')
         .sort({ createdAt: -1 });
 
-        
       return res.status(200).json({
         success: true,
         message: 'bookings fetched.',
@@ -206,6 +205,38 @@ export class CarBookingController {
         success: false,
         message: 'Internal Server Error',
       });
+    }
+  }
+
+  // Cancel a booking (user)
+  static async cancelBooking(req, res) {
+    try {
+      const { bookingId } = req.params;
+      const booking = await carBookingModel.findById(bookingId);
+      if (!booking) {
+        return res
+          .status(404)
+          .json({ success: false, message: 'Booking not found.' });
+      }
+      booking.status = 'cancelled';
+      await booking.save();
+      // Optionally restore car quantity
+      const car = await carModel.findById(booking.car);
+      if (car) {
+        car.quantity = 1;
+        car.available = true;
+        await car.save();
+      }
+      return res.status(200).json({
+        success: true,
+        message: 'Booking cancelled successfully.',
+        data: booking,
+      });
+    } catch (error) {
+      console.error('Cancel Booking Error:', error);
+      return res
+        .status(500)
+        .json({ success: false, message: 'Internal Server Error' });
     }
   }
 }

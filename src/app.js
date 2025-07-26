@@ -17,6 +17,7 @@ import carbookingRoutes from './routes/carBooking.routes.js';
 import feedbackRoutes from './routes/feedback.routes.js';
 import contactRoutes from './routes/contact.routes.js';
 import settingsRoutes from './routes/settings.routes.js';
+import faqRoutes from './routes/faq.routes.js';
 
 dotenv.config();
 
@@ -32,22 +33,32 @@ app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
 // CORS configuration
-const allowedOrigins = [
-  'https://admin.ombannatours.com',
-  'https://ombannatours.com',
-];
-
-app.use(cors({
-
-  origin: 'https://ombannatours.com', // ✅ specific frontend domain
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH']
-}));
+app.use(
+  cors({
+    origin: [
+      'http://localhost:3000',
+      'http://localhost:5173',
+      'http://localhost:5174',
+      'http://localhost:5175',
+    ],
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+    allowedHeaders: [
+      'Content-Type',
+      'Authorization',
+      'X-Requested-With',
+      'Accept',
+      'Origin',
+    ],
+    exposedHeaders: ['Set-Cookie'],
+  })
+);
 
 // Static file serving
-const uploadsPath = process.env.NODE_ENV === 'production' 
-  ? '/tmp/uploads' 
-  : path.join(__dirname, '../uploads');
+const uploadsPath =
+  process.env.NODE_ENV === 'production'
+    ? '/tmp/uploads'
+    : path.join(__dirname, '../uploads');
 
 // Ensure uploads directory exists
 if (!fs.existsSync(uploadsPath)) {
@@ -72,15 +83,17 @@ app.use('/api/v1/feedback', feedbackRoutes);
 app.use('/api/v1/blogs', blogRoutes);
 app.use('/api/v1/contact', contactRoutes);
 app.use('/api/v1/settings', settingsRoutes);
+app.use('/api/v1/faqs', faqRoutes);
 
 // Global error handler
 app.use((err, req, res, next) => {
   console.error('Error:', err);
   res.status(500).json({
     status: 'error',
-    message: process.env.NODE_ENV === 'production'
-      ? 'Internal server error'
-      : err.message
+    message:
+      process.env.NODE_ENV === 'production'
+        ? 'Internal server error'
+        : err.message,
   });
 });
 

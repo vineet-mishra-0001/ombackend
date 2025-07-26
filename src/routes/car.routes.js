@@ -3,6 +3,8 @@ import {
   createCar,
   getAllCars,
   getCarById,
+  updateCar,
+  deleteCar,
 } from '../controllers/car.controller.js';
 import upload from '../middlewares/multer.js';
 const router = express.Router();
@@ -15,5 +17,7 @@ router.get('/:id', getCarById);
 //   ]), createCar);
 
 router.post('/', createCar);
+router.put('/:id', updateCar);
+router.delete('/:id', deleteCar);
 
 export default router;
