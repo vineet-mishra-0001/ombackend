@@ -66,10 +66,9 @@ export const loginUser = async (req, res) => {
     res.cookie('auth_token', token, {
       httpOnly: true,
       secure: true, // Only use secure in production
-      sameSite: 'strict', // Use strict in production
+      sameSite: 'None', // Use strict in production
       path: '/',
       maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
-     
     });
 
     const { password: _, ...rest } = user._doc;
